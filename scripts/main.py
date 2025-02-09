@@ -4,6 +4,10 @@ from tkinter import messagebox
 from database import connect_db
 from customtkinter import filedialog
 from PIL import Image
+from functions import Instagram_post_automation,X_post_automation,LinkedIn_post_automation
+from threading import Thread
+import time
+
 
 class Main(ctk.CTk):
     def __init__(self):
@@ -11,6 +15,8 @@ class Main(ctk.CTk):
         self.title("PostScheduler")
         self.geometry("500x400")
         self.resizable(False, False)
+        
+        self.filepath = None
 
 
         self.iconbitmap("assets/iconphoto.ico")
@@ -220,18 +226,32 @@ class Main(ctk.CTk):
                 self.deiconify()
 
             def post_instagram():
+                def login_instagram():
+                    username = self.username
+                    password = self.password
+                    title_post = entry_caption.get()
+                    if title_post == "":
+                        messagebox.showinfo("Info", "Por favor adicione uma legenda",parent=post_instagram_window)
+                        return
+                    post = Instagram_post_automation()
+                    if self.file_path == None:
+                        Thread(target=post.login_page,args=(username,password,title_post,None),daemon=True).start()
+                    else:
+                        Thread(target=post.login_page,args=(username,password,title_post,None),daemon=True).start()
+
                 def instagram_get_image():
-                    file_path = filedialog.askopenfilename(
+                    self.file_path = filedialog.askopenfilename(
                         title="Select a file",
                         filetypes=[("Image files", "*.png *.jpg *.jpeg")],
                     )
-                    if file_path:
-                        image = Image.open(file_path)
+                    if self.file_path:
+                        image = Image.open(self.file_path)
                         image = image.resize((100, 100))
                         ctk_image = ctk.CTkImage(light_image=image)
                         label_image.configure(image=ctk_image)
                         label_image.image = ctk_image
                         messagebox.showinfo("Info", "Imagem adicionada com sucesso",parent=post_instagram_window)
+                        return self.file_path
 
                 post_instagram_window = ctk.CTkToplevel(Instagram_window)
                 post_instagram_window.title("Instagram Post")
@@ -244,11 +264,11 @@ class Main(ctk.CTk):
                 entry_caption = ctk.CTkEntry(post_instagram_window, font=("Raleway", 12))
                 button_filedialog = ctk.CTkButton(post_instagram_window, text="Adicionar foto", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419",command=instagram_get_image)
                 label_image= ctk.CTkLabel(post_instagram_window,text="", height=100, width=100)
-                button_post = ctk.CTkButton(post_instagram_window, text="Postar", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419")
+                button_post = ctk.CTkButton(post_instagram_window, text="Postar", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419",command=lambda: login_instagram())
 
                 label_header.pack(pady=5)
                 label_subheader.pack(pady=5)
-                entry_caption.pack(pady=5)
+                entry_caption.pack(pady=5,fill=X)
                 button_filedialog.pack(pady=5)
                 label_image.pack(pady=5)
                 button_post.pack(pady=5,side=BOTTOM)
@@ -288,13 +308,30 @@ class Main(ctk.CTk):
                 self.deiconify()
 
             def post_x():
+                def login_x():
+                    username = self.username
+                    password = self.password
+                    title_post = entry_caption.get()
+                    post = X_post_automation()
+                    if title_post == "":
+                        messagebox.showinfo("Info", "Por favor adicione uma legenda",parent=post_x_window)
+                        return
+                    else:
+                        Thread(target=post.login_page,args=(username,password),daemon=True).start()
+                        time.sleep(5)
+                        if self.file_path == None:
+                            Thread(target=post.create_post,args=(title_post,None),daemon=True).start()
+                        else:
+                            print(self.file_path)
+                            Thread(target=post.create_post,args=(title_post,self.file_path),daemon=True).start()
+
                 def x_get_image():
-                    file_path = filedialog.askopenfilename(
+                    self.file_path = filedialog.askopenfilename(
                         title="Select a file",
                         filetypes=[("Image files", "*.png *.jpg *.jpeg")],
                     )
-                    if file_path:
-                        image = Image.open(file_path)
+                    if self.file_path:
+                        image = Image.open(self.file_path)
                         image = image.resize((100, 100))
                         ctk_image = ctk.CTkImage(light_image=image)
                         label_image.configure(image=ctk_image)
@@ -308,16 +345,16 @@ class Main(ctk.CTk):
                 post_x_window.iconbitmap("assets/iconphoto.ico")
                 post_x_window.resizable(False, False)
 
-                label_header = ctk.CTkLabel(post_x_window, text="Instagram Post", font=("Raleway", 24))
+                label_header = ctk.CTkLabel(post_x_window, text="X Post", font=("Raleway", 24))
                 label_subheader = ctk.CTkLabel(post_x_window, text="Escreva a legenda:", font=("Raleway", 14))
                 entry_caption = ctk.CTkEntry(post_x_window, font=("Raleway", 12))
                 button_filedialog = ctk.CTkButton(post_x_window, text="Adicionar foto", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419",command=x_get_image)
                 label_image = ctk.CTkLabel(post_x_window,text="", height=100, width=100)
-                button_post = ctk.CTkButton(post_x_window, text="Postar", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419")
+                button_post = ctk.CTkButton(post_x_window, text="Postar", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419",command=login_x)
 
                 label_header.pack(pady=5)
                 label_subheader.pack(pady=5)
-                entry_caption.pack(pady=5)
+                entry_caption.pack(pady=5,fill=X)
                 button_filedialog.pack(pady=5)
                 label_image.pack(pady=5)
                 button_post.pack(pady=5,side=BOTTOM)
@@ -353,22 +390,36 @@ class Main(ctk.CTk):
                 self.deiconify()
 
             def post_linkedin():
+                def login_linkedin():
+                    username = self.username
+                    password = self.password
+                    title_post = entry_caption.get()
+                    if title_post == "":
+                        messagebox.showinfo("Info", "Por favor adicione uma legenda",parent=post_likendin_window)
+                        return
+                    post = LinkedIn_post_automation()
+                    if self.file_path == None:
+                        Thread(target=post.login_page, args=(username,password,title_post,None),daemon=True).start()
+                    else:
+                        print(self.file_path)
+                        Thread(target=post.login_page, args=(username,password,title_post,self.file_path),daemon=True).start()
+
                 def linkedin_get_image():
-                    file_path = filedialog.askopenfilename(
+                    self.file_path = filedialog.askopenfilename(
                         title="Select a file",
                         filetypes=[("Image files", "*.png *.jpg *.jpeg")],
                     )
-                    if file_path:
-                        image = Image.open(file_path)
+                    if self.file_path:
+                        image = Image.open(self.file_path)
                         image = image.resize((100, 100))
                         ctk_image = ctk.CTkImage(light_image=image)
                         label_image.configure(image=ctk_image)
                         label_image.image = ctk_image
                         messagebox.showinfo("Info", "Imagem adicionada com sucesso",parent=post_likendin_window)
-
+                        
 
                 post_likendin_window = ctk.CTkToplevel(Likendin_window)
-                post_likendin_window.title("Instagram Post")
+                post_likendin_window.title("LinkedIn Post")
                 post_likendin_window.geometry("400x300")
                 post_likendin_window.iconbitmap("assets/iconphoto.ico")
                 post_likendin_window.resizable(False, False)
@@ -378,11 +429,11 @@ class Main(ctk.CTk):
                 entry_caption = ctk.CTkEntry(post_likendin_window, font=("Raleway", 12))
                 button_get_image = ctk.CTkButton(post_likendin_window, text="Adicionar foto", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419",command=linkedin_get_image)
                 label_image = ctk.CTkLabel(post_likendin_window,text="", height=100, width=100)
-                button_post = ctk.CTkButton(post_likendin_window, text="Postar", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419")
+                button_post = ctk.CTkButton(post_likendin_window, text="Postar", font=("Raleway", 14),fg_color="#000000",hover_color="#0F1419",command=login_linkedin)
 
                 label_header.pack(pady=5)
                 label_subheader.pack(pady=5)
-                entry_caption.pack(pady=5)
+                entry_caption.pack(pady=5,fill=X)
                 button_get_image.pack(pady=5)
                 label_image.pack(pady=5)
                 button_post.pack(pady=5,side=BOTTOM)
